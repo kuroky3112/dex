@@ -10,6 +10,10 @@ import { Balloons } from "../typechain-types/contracts/Balloons";
  * @param hre HardhatRuntimeEnvironment object.
  */
 const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  // HardhatEthersProvider currently throws for resolveName; hardhat-deploy calls it when resolving named accounts.
+  // Stub it to a no-op for local deployments (ENS not needed here).
+  (hre.ethers.provider as any).resolveName = async (name: string) => name;
+
   /*
     On localhost, the deployer account is the one that comes with Hardhat, which is already funded.
 
@@ -49,20 +53,24 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
 
   const dex = (await hre.ethers.getContract("DEX", deployer)) as DEX;
 
-  // // paste in your front-end address here to get 10 balloons on deploy:
-  // await balloons.transfer("YOUR_FRONTEND_ADDRESS", "" + 10 * 10 ** 18);
+  // paste in your front-end address here to get 10 balloons on deploy (using deployer by default)
+  await balloons.transfer(deployer, "" + 10 * 10 ** 18);
 
-  // // uncomment to init DEX on deploy:
+  // uncomment to init DEX on deploy:
 
-  // const dexAddress = await dex.getAddress();
-  // console.log("Approving DEX (" + dexAddress + ") to take Balloons from main account...");
-  // // If you are going to the testnet make sure your deployer account has enough ETH
-  // await balloons.approve(dexAddress, hre.ethers.parseEther("100"));
-  // console.log("INIT exchange...");
-  // await dex.init(hre.ethers.parseEther("5"), {
-  //   value: hre.ethers.parseEther("5"),
-  //   gasLimit: 200000,
-  // });
+  const dexAddress = await dex.getAddress();
+  const isLocal = hre.network.name === "localhost" || hre.network.name === "hardhat";
+  if (isLocal) {
+    console.log("Approving DEX (" + dexAddress + ") to take Balloons from main account...");
+    await balloons.approve(dexAddress, hre.ethers.parseEther("100"));
+    console.log("INIT exchange with 5 ETH / 5 BAL (local only)...");
+    await dex.init(hre.ethers.parseEther("5"), {
+      value: hre.ethers.parseEther("5"),
+      gasLimit: 200000,
+    });
+  } else {
+    console.log("Skipping init() on non-local network. Add liquidity manually after deploy.");
+  }
 };
 
 export default deployYourContract;
