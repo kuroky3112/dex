@@ -131,7 +131,7 @@ describe("🚩 Challenge: ⚖️ 🪙 DEX", () => {
           value: ethers.parseEther("1"),
         });
 
-        expect(tx1, "ethToToken should revert before initalization").not.to.be.reverted;
+        await expect(tx1, "ethToToken should revert before initalization").to.not.be.reverted;
 
         console.log("\t", " 🔰 Initializing...");
         const tx1_receipt = await tx1.wait();
@@ -295,7 +295,7 @@ describe("🚩 Challenge: ⚖️ 🪙 DEX", () => {
         expect(user2liquidity).to.equal("0");
         console.log("\t", " 🔼 Expecting the deposit function to emit correctly...");
         await expect(
-          dexContract.connect(user2).deposit((ethers.parseEther("5"), { value: ethers.parseEther("5") })),
+          dexContract.connect(user2).deposit({ value: ethers.parseEther("5") }),
           "Check the order of the values when emitting LiquidityProvided: msg.sender, liquidityMinted, msg.value, tokenDeposit",
         )
           .to.emit(dexContract, "LiquidityProvided")
@@ -313,10 +313,8 @@ describe("🚩 Challenge: ⚖️ 🪙 DEX", () => {
       });
 
       it("Should revert if 0 ETH deposited", async function () {
-        await expect(
-          dexContract.deposit((ethers.parseEther("0"), { value: ethers.parseEther("0") })),
-          "Should revert if 0 value is sent",
-        ).to.be.reverted;
+        await expect(dexContract.deposit({ value: ethers.parseEther("0") }), "Should revert if 0 value is sent").to.be
+          .reverted;
       });
     });
     // pool should have 5:5 ETH:$BAL ratio
